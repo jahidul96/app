@@ -70,10 +70,9 @@ export const SubjectComp = ({label, text, subjectStyle}) => (
 	</View>
 );
 
-export const AdNotification = ({data}) => (
+export const AdNotification = ({selectedCourse}) => (
 	<View style={styles.adNotification}>
-		<Text>Subject : {data.title}</Text>
-		<Text>Current Attendence : {data.attendence}</Text>
+		<Text>Subject : {selectedCourse}</Text>
 	</View>
 );
 

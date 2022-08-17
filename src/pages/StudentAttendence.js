@@ -34,7 +34,7 @@ const StudentAttendence = ({route, navigation}) => {
 		}, 1000);
 	};
 	const gotoNtoficationpage = () => {
-		navigation.navigate("studentattendencenotification");
+		navigation.navigate("studentattendencenotification", selectedCourse);
 	};
 	return (
 		<ScrollView contentContainerStyle={styles.root}>

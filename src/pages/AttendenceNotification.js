@@ -3,14 +3,13 @@ import React from "react";
 import {CourseData} from "../data/CourseData";
 import {AdNotification} from "../components/Reuse";
 
-const AttendenceNotification = () => {
+const AttendenceNotification = ({route}) => {
+	const selectedCourse = route.params;
 	return (
 		<ScrollView style={styles.root}>
 			<View style={styles.mainContainer}>
 				<Text style={styles.text}>My Attendence</Text>
-				{CourseData.map((data) => (
-					<AdNotification key={data.id} data={data} />
-				))}
+				<AdNotification selectedCourse={selectedCourse} />
 			</View>
 		</ScrollView>
 	);

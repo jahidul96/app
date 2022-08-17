@@ -1,53 +1,82 @@
 import {
+	Pressable,
 	ScrollView,
 	StyleSheet,
 	Text,
 	TouchableOpacity,
 	View,
 } from "react-native";
-import React from "react";
-import {TextTitle, TopBar} from "../components/Reuse";
+import React, {useEffect, useState} from "react";
+import {TopBar} from "../components/Reuse";
 import {COLORS} from "../styles/Colors";
 import Icon from "react-native-vector-icons/AntDesign";
-import {doc, setDoc, updateDoc} from "firebase/firestore";
+import {doc, onSnapshot, setDoc, updateDoc} from "firebase/firestore";
 import {db} from "../firebase/firebase";
 
 const myIcon = <Icon name="caretup" size={16} color={COLORS.grayColor} />;
 
 const StudentDatabase = ({route, navigation}) => {
-	const {id, students} = route.params;
+	const {courseId} = route.params;
+	const [courseStudents, setCourseStudent] = useState([]);
+	const [cliked, setCliked] = useState(false);
 
 	const markAttendence = async () => {
-		const data = students.students.map((item) => {
-			item = {...item, present: "present"};
-			return item;
-		});
-		await updateDoc(
-			doc(db, "courses", id),
-			{
-				students: data,
-			},
-			{merge: true}
-		);
-	};
-
-	const selectOneStudent = async (val) => {
-		const data = students.students.map((item) => {
-			if (item.studentMail === val.studentMail) {
+		try {
+			const data = courseStudents.map((item) => {
 				item = {...item, present: "present"};
-			}
-			return item;
-		});
-
-		await setDoc(
-			doc(db, "courses", id),
-			{
-				students: data,
-			},
-			{merge: true}
-		);
+				return item;
+			});
+			await updateDoc(
+				doc(db, "courses", courseId),
+				{
+					students: data,
+				},
+				{merge: true}
+			);
+			setCliked(!cliked);
+		} catch (error) {
+			alert("something went wrong");
+		}
 	};
 
+	const markOneStudentAttendence = async (val, text) => {
+		if (text == "present") {
+			const data = courseStudents.map((item) => {
+				if (item.studentMail === val.studentMail) {
+					item = {...item, present: "present"};
+				}
+				return item;
+			});
+			await setDoc(
+				doc(db, "courses", courseId),
+				{
+					students: data,
+				},
+				{merge: true}
+			);
+		} else {
+			const data = courseStudents.map((item) => {
+				if (item.studentMail === val.studentMail) {
+					item = {...item, present: "request"};
+				}
+				return item;
+			});
+
+			await setDoc(
+				doc(db, "courses", courseId),
+				{
+					students: data,
+				},
+				{merge: true}
+			);
+		}
+	};
+
+	useEffect(() => {
+		onSnapshot(doc(db, "courses", courseId), (doc) => {
+			setCourseStudent(doc.data().students);
+		});
+	}, []);
 	return (
 		<View>
 			<View style={styles.headStyle}>
@@ -55,11 +84,21 @@ const StudentDatabase = ({route, navigation}) => {
 			</View>
 			<ScrollView contentContainerStyle={styles.wrapper}>
 				<View style={styles.topView}>
-					<View style={styles.studentIdView}>
+					<View
+						style={[
+							styles.studentIdView,
+							styles.studentIdViewStyle2,
+						]}
+					>
 						<Text style={styles.text}>Students</Text>
 					</View>
+
 					<TouchableOpacity
-						style={[styles.studentIdView, styles.mark]}
+						style={[
+							styles.studentIdView,
+							styles.mark,
+							cliked && styles.markAllBgChange,
+						]}
 						onPress={markAttendence}
 					>
 						<Text style={[styles.text, styles.whiteText]}>
@@ -68,9 +107,13 @@ const StudentDatabase = ({route, navigation}) => {
 					</TouchableOpacity>
 				</View>
 
-				{students.students.length ? (
-					students.students.map((data, i) => (
-						<StudentInfo key={i} data={data} />
+				{courseStudents.length ? (
+					courseStudents.map((data, i) => (
+						<StudentInfo
+							key={i}
+							data={data}
+							markAt={markOneStudentAttendence}
+						/>
 					))
 				) : (
 					<Text style={styles.nullText}>No students presents</Text>
@@ -82,18 +125,37 @@ const StudentDatabase = ({route, navigation}) => {
 
 export default StudentDatabase;
 
-const StudentInfo = ({data}) => {
-	const seeDate = () => {
-		alert(Date.now());
-	};
+const StudentInfo = ({data, markAt}) => {
 	return (
 		<View style={styles.topView}>
-			<TouchableOpacity
-				style={[styles.studentIdView, styles.studentIdViewStyle2]}
-				onPress={() => seeDate(data)}
+			<View
+				style={[
+					styles.studentIdView,
+					data.present == "present" && styles.studentIdViewStyle2,
+				]}
 			>
 				<Text style={styles.text}>{data.studentMail}</Text>
-			</TouchableOpacity>
+			</View>
+
+			{data.present == "present" ? (
+				<Pressable
+					style={[
+						styles.studentIdView,
+						styles.mark,
+						styles.markBgStyle,
+					]}
+					onPress={() => markAt(data)}
+				>
+					<Text style={[styles.text, styles.whiteText]}>Unmark</Text>
+				</Pressable>
+			) : (
+				<Pressable
+					style={[styles.studentIdView, styles.mark]}
+					onPress={() => markAt(data, "present")}
+				>
+					<Text style={[styles.text, styles.whiteText]}>Mark</Text>
+				</Pressable>
+			)}
 		</View>
 	);
 };
@@ -122,7 +184,7 @@ const styles = StyleSheet.create({
 	},
 	studentIdView: {
 		width: "65%",
-		backgroundColor: COLORS.brown,
+		backgroundColor: COLORS.grayColor,
 		flexDirection: "row",
 		justifyContent: "center",
 		alignItems: "center",
@@ -131,12 +193,15 @@ const styles = StyleSheet.create({
 	},
 
 	studentIdViewStyle2: {
-		width: "100%",
+		width: "65%",
 		backgroundColor: COLORS.lightBlue,
 	},
 	mark: {
 		width: "30%",
 		backgroundColor: COLORS.red,
+	},
+	markAllBgChange: {
+		backgroundColor: COLORS.grayColor,
 	},
 	text: {
 		fontSize: 17,
@@ -159,5 +224,8 @@ const styles = StyleSheet.create({
 		marginVertical: 10,
 		fontFamily: "Helvetica-Bold",
 		fontSize: 16,
+	},
+	markBgStyle: {
+		backgroundColor: COLORS.brown,
 	},
 });

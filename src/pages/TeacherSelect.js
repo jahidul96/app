@@ -36,19 +36,25 @@ const btnTextStyle = {
 	fontFamily: "Helvetica-Bold",
 };
 
-const TeacherSelect = ({navigation, route}) => {
-	const [validuser, setVaildUser] = useState("");
+const TeacherSelect = ({navigation}) => {
 	const [mycourses, setMyCourses] = useState([]);
+	const [courseId, setCourseId] = useState("0");
+	const [courseName, setCourseName] = useState("");
 
 	const selectCourse = async (title, id) => {
-		const ref = doc(db, "courses", id);
+		setCourseName(title);
+		setCourseId(id);
+	};
+
+	const seeAttendence = async () => {
+		const ref = doc(db, "courses", courseId);
 		const docSnap = await getDoc(ref);
 		let students;
 		if (docSnap.exists()) {
 			students = docSnap.data();
-			navigation.navigate("seeallStudent", {id, students});
+			navigation.navigate("seeallStudent", {courseId, students});
 		} else {
-			console.log("No such document!");
+			alert("select one course");
 		}
 	};
 
@@ -74,7 +80,6 @@ const TeacherSelect = ({navigation, route}) => {
 					});
 					setMyCourses(tCourse);
 				});
-				setVaildUser(user.email);
 			} else {
 				console.log("user not found");
 			}
@@ -97,11 +102,18 @@ const TeacherSelect = ({navigation, route}) => {
 							key={data.id}
 							data={data}
 							select={selectCourse}
+							someStyle={data.id == courseId && styles.extraStyle}
 						/>
 					))
 				) : (
 					<Text style={styles.emptyText}>No courses available</Text>
 				)}
+				<ButtonComp
+					text="SeeAttendence"
+					bgColor={bgColor}
+					btnTextStyle={btnTextStyle}
+					click={seeAttendence}
+				/>
 				<ButtonComp
 					text="Logout"
 					bgColor={bgColor}
@@ -136,5 +148,8 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		marginTop: 10,
 		fontFamily: "Helvetica-Bold",
+	},
+	extraStyle: {
+		backgroundColor: "red",
 	},
 });
